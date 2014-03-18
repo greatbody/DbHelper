@@ -33,9 +33,11 @@ Public Class SqlDbHelper
         _ConnString = connString
         _command = New SqlClient.SqlCommand
         _Conn = New SqlClient.SqlConnection(_ConnString)
+        _sqlBuilder = New StringBuilder("")
 
         _ConnString = connString
         _Conn = New SqlConnection(_ConnString)
+        _Conn.Open()
         _command = New SqlCommand()
         _command.Connection = _Conn
 
@@ -50,6 +52,7 @@ Public Class SqlDbHelper
 
     Public Function ExcuteNonQuery(ByVal sqlComm As SqlClient.SqlCommand) As Integer Implements ISqlDbHelper.ExcuteNonQuery
         Using sqlComm
+            sqlComm.CommandText = _sqlBuilder.ToString
             Return sqlComm.ExecuteNonQuery
         End Using
     End Function
@@ -60,6 +63,7 @@ Public Class SqlDbHelper
     Public Function ExecuteScalar(Of T)(ByVal sqlComm As SqlClient.SqlCommand) As T Implements ISqlDbHelper.ExecuteScalar
         Dim obj As Object
         Using sqlComm
+            sqlComm.CommandText = _sqlBuilder.ToString
             obj = sqlComm.ExecuteScalar
             If ((obj Is Nothing) OrElse DBNull.Value.Equals(obj)) Then
                 Return CType(Nothing, T)
@@ -86,6 +90,7 @@ Public Class SqlDbHelper
     Public Function FillDataTable(ByVal sqlComm As SqlClient.SqlCommand) As System.Data.DataTable Implements ISqlDbHelper.FillDataTable
         Dim _DataTable As New DataTable("_sunsoft")
         Using sqlComm
+            sqlComm.CommandText = _sqlBuilder.ToString
             Using dbReader As Data.SqlClient.SqlDataReader = sqlComm.ExecuteReader
                 _DataTable.Load(dbReader)
             End Using
@@ -96,6 +101,7 @@ Public Class SqlDbHelper
     Public Function FillDataSet(ByVal sqlComm As SqlClient.SqlCommand) As System.Data.DataSet Implements ISqlDbHelper.FillDataSet
         Dim _DataSet As New DataSet
         Using sqlComm
+            sqlComm.CommandText = _sqlBuilder.ToString
             Dim s = New SqlDataAdapter(sqlComm).Fill(_DataSet)
             Dim sCount As Integer
             For sCount = 0 To _DataSet.Tables.Count - 1
@@ -127,7 +133,7 @@ Public Class SqlDbHelper
     ''' <param name="p">直接数据类型</param>
     ''' <remarks></remarks>
     Private Sub _addParam(ByVal p As QueryParameter)
-        Me._sqlBuilder.Append("@" & _count.ToString)
-        Me._command.Parameters.AddWithValue("@" & _count.ToString, p.Value)
+        Me._sqlBuilder.Append("@p" & _count.ToString)
+        Me._command.Parameters.AddWithValue("@p" & _count.ToString, p.Value)
     End Sub
 End Class

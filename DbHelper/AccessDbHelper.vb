@@ -71,8 +71,8 @@ Public Class AccessDbHelper
     ''' <param name="p">直接数据类型</param>
     ''' <remarks></remarks>
     Private Sub _addParam(ByVal p As QueryParameter)
-        Me._sqlBuilder.Append("@" & _count.ToString)
-        Me._command.Parameters.AddWithValue("@" & _count.ToString, p.Value)
+        Me._sqlBuilder.Append("@p" & _count.ToString)
+        Me._command.Parameters.AddWithValue("@p" & _count.ToString, p.Value)
     End Sub
     Public Function ExcuteNonQuery() As Integer Implements IDbHelper.ExcuteNonQuery
         Return ExcuteNonQuery(Me._command)
