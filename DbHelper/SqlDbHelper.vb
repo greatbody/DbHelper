@@ -1,10 +1,15 @@
 ﻿Imports System.Data.SqlClient
+Imports System.Text
+
 Public Class SqlDbHelper
-    Implements IDbHelper
-    Private _Conn As New System.Data.SqlClient.SqlConnection
+    Implements ISqlDbHelper
+
+    Private _Conn As New SqlClient.SqlConnection
     Private _ConnString As String = ""
     Private _SqlString As String = ""
-
+    Private _command As SqlClient.SqlCommand
+    Private _sqlBuilder As StringBuilder
+    Private _count As Integer = 0
     Public Property ConnectionString() As String
         Get
             Return _ConnString
@@ -15,40 +20,47 @@ Public Class SqlDbHelper
     End Property
 
     Public Sub New()
-
+        Dim connString As String = System.Configuration.ConfigurationManager.AppSettings.Get("ConnectionString")
+        If connString = Nothing Or connString = "" Or String.IsNullOrEmpty(connString) Then
+            Throw New Exception("请配置初始化的连接字符串，否则请提供连接字符串")
+        End If
+        Create(connString)
     End Sub
     Public Sub New(ByVal connString As String)
+        Create(connString)
+    End Sub
+    Private Sub Create(ByVal connString As String)
         _ConnString = connString
-        Create()
-    End Sub
-    Public Sub Create()
-        _Conn.ConnectionString = _ConnString
-        _Conn.Open()
-    End Sub
+        _command = New SqlClient.SqlCommand
+        _Conn = New SqlClient.SqlConnection(_ConnString)
 
-    Public Function ExcuteNonQuery() As Integer Implements IDbHelper.ExcuteNonQuery
-        Return ExcuteNonQuery(_SqlString)
+        _ConnString = connString
+        _Conn = New SqlConnection(_ConnString)
+        _command = New SqlCommand()
+        _command.Connection = _Conn
+
+    End Sub
+    Public Function Create() As SqlDbHelper
+        Return New SqlDbHelper()
     End Function
 
-    Public Function ExcuteNonQuery(ByVal SqlString As String) As Integer Implements IDbHelper.ExcuteNonQuery
-        Using dbCommand As New Data.SqlClient.SqlCommand
-            dbCommand.Connection = _Conn
-            dbCommand.CommandText = _SqlString
-            dbCommand.CommandText = SqlString
-            Return dbCommand.ExecuteNonQuery
+    Public Function ExcuteNonQuery() As Integer Implements ISqlDbHelper.ExcuteNonQuery
+        Return ExcuteNonQuery(Me._command)
+    End Function
+
+    Public Function ExcuteNonQuery(ByVal sqlComm As SqlClient.SqlCommand) As Integer Implements ISqlDbHelper.ExcuteNonQuery
+        Using sqlComm
+            Return sqlComm.ExecuteNonQuery
         End Using
     End Function
 
-    Public Function ExecuteScalar(Of T)() As T Implements IDbHelper.ExecuteScalar
-        Return ExecuteScalar(Of T)(_SqlString)
+    Public Function ExecuteScalar(Of T)() As T Implements ISqlDbHelper.ExecuteScalar
+        Return ExecuteScalar(Of T)(Me._command)
     End Function
-    Public Function ExecuteScalar(Of T)(ByVal sqlString As String) As T Implements IDbHelper.ExecuteScalar
+    Public Function ExecuteScalar(Of T)(ByVal sqlComm As SqlClient.SqlCommand) As T Implements ISqlDbHelper.ExecuteScalar
         Dim obj As Object
-        _SqlString = sqlString
-        Using dbCommand As New Data.SqlClient.SqlCommand
-            dbCommand.Connection = _Conn
-            dbCommand.CommandText = _SqlString
-            obj = dbCommand.ExecuteScalar
+        Using sqlComm
+            obj = sqlComm.ExecuteScalar
             If ((obj Is Nothing) OrElse DBNull.Value.Equals(obj)) Then
                 Return CType(Nothing, T)
             End If
@@ -59,37 +71,32 @@ Public Class SqlDbHelper
         End Using
     End Function
 
-
-    Public Function FillDataSet() As System.Data.DataSet Implements IDbHelper.FillDataSet
-        Return FillDataSet(_SqlString)
+    Public Function FillDataSet() As System.Data.DataSet Implements ISqlDbHelper.FillDataSet
+        Return FillDataSet(Me._command)
     End Function
 
-    Public Function FillDataTable() As System.Data.DataTable Implements IDbHelper.FillDataTable
-        Return FillDataTable(_SqlString)
+    Public Function FillDataTable() As System.Data.DataTable Implements ISqlDbHelper.FillDataTable
+        Return FillDataTable(Me._command)
     End Function
 
-    Public Function From(ByVal sqlStr As String) As AccessDbHelper Implements IDbHelper.From
-        Return New AccessDbHelper(sqlStr)
+    Public Function From(ByVal sqlStr As String) As SqlDbHelper Implements ISqlDbHelper.From
+        Return New SqlDbHelper(sqlStr)
     End Function
 
-    Public Function FillDataTable(ByVal SqlString As String) As System.Data.DataTable Implements IDbHelper.FillDataTable
+    Public Function FillDataTable(ByVal sqlComm As SqlClient.SqlCommand) As System.Data.DataTable Implements ISqlDbHelper.FillDataTable
         Dim _DataTable As New DataTable("_sunsoft")
-        Using dbCommand As New Data.SqlClient.SqlCommand
-            dbCommand.Connection = _Conn
-            Using dbReader As Data.SqlClient.SqlDataReader = dbCommand.ExecuteReader
+        Using sqlComm
+            Using dbReader As Data.SqlClient.SqlDataReader = sqlComm.ExecuteReader
                 _DataTable.Load(dbReader)
             End Using
         End Using
         Return _DataTable
     End Function
 
-    Public Function FillDataSet(ByVal SqlString As String) As System.Data.DataSet Implements IDbHelper.FillDataSet
+    Public Function FillDataSet(ByVal sqlComm As SqlClient.SqlCommand) As System.Data.DataSet Implements ISqlDbHelper.FillDataSet
         Dim _DataSet As New DataSet
-        Using dbCommand As New SqlClient.SqlCommand
-            dbCommand.Connection = _Conn
-            dbCommand.CommandText = _SqlString
-            dbCommand.CommandText = SqlString
-            Dim s = New SqlDataAdapter(dbCommand).Fill(_DataSet)
+        Using sqlComm
+            Dim s = New SqlDataAdapter(sqlComm).Fill(_DataSet)
             Dim sCount As Integer
             For sCount = 0 To _DataSet.Tables.Count - 1
                 _DataSet.Tables.Item(sCount).TableName = ("_sunsoft" & sCount.ToString)
@@ -97,4 +104,30 @@ Public Class SqlDbHelper
             Return _DataSet
         End Using
     End Function
+
+
+    '''后面的代码用于运算符重载相关的代码
+    Public Shared Operator +(ByVal meDefault As SqlDbHelper, ByVal strp As String) As SqlDbHelper
+        '完成:运算符重载
+        meDefault._addSqlText(strp)
+        Return meDefault
+    End Operator
+
+    Private Sub _addSqlText(ByVal paramStr As String)
+        _sqlBuilder.Append(paramStr)
+    End Sub
+    Public Shared Operator +(ByVal meDefault As SqlDbHelper, ByVal strp As QueryParameter) As SqlDbHelper
+        'meDefault._sqlBuilder.Append("@" & _count.ToString)
+        meDefault._addParam(strp)
+        Return meDefault
+    End Operator
+    ''' <summary>
+    ''' 添加参数，重载，参数类型
+    ''' </summary>
+    ''' <param name="p">直接数据类型</param>
+    ''' <remarks></remarks>
+    Private Sub _addParam(ByVal p As QueryParameter)
+        Me._sqlBuilder.Append("@" & _count.ToString)
+        Me._command.Parameters.AddWithValue("@" & _count.ToString, p.Value)
+    End Sub
 End Class

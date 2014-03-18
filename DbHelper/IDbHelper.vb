@@ -1,6 +1,6 @@
 ﻿Public Interface IDbHelper
     Function ExcuteNonQuery() As Integer
-    Function ExcuteNonQuery(ByVal SqlString As String) As Integer
+    Function ExcuteNonQuery(ByVal sqlComm As OleDb.OleDbCommand) As Integer
 
     Function ExecuteScalar(Of T)() As T
     Function ExecuteScalar(Of T)(ByVal sqlComm As OleDb.OleDbCommand) As T

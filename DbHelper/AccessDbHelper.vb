@@ -4,6 +4,7 @@ Imports System.Text
 Imports SunSoft.DAL.StringUtility
 Public Class AccessDbHelper
     Implements IDbHelper
+
     Private _Conn As OleDb.OleDbConnection
     Private _ConnString As String = ""
     Private _SqlString As String = ""
@@ -24,13 +25,12 @@ Public Class AccessDbHelper
         'ok at 2014年3月9日19:47:51
         '初始化变量：
         _sqlBuilder = New StringBuilder("")
+        _command = New OleDbCommand
+        '读取连接字符串
         Dim connString As String = System.Configuration.ConfigurationManager.AppSettings.Get("ConnectionString")
-        If _ConnString.Length > 0 Then
-            'Create(_ConnString)
-        Else
-            'Create(connString)
-            _ConnString = connString
-        End If
+        _ConnString = connString
+        '连接到数据库，创建连接
+        CreateConn(_ConnString)
     End Sub
     Public Sub New(ByVal connString As String)
         'ok at 2014年3月9日19:34:24
@@ -40,7 +40,6 @@ Public Class AccessDbHelper
     End Sub
     Public Shared Function Create() As AccessDbHelper
         'ok at
-        
         Return New AccessDbHelper
     End Function
 
@@ -48,6 +47,7 @@ Public Class AccessDbHelper
         'ok at 2014年3月9日19:32:27
         '修改：2014年3月16日19:37:17
         _Conn = New OleDb.OleDbConnection(connString)
+        _command.Connection = _Conn
         _Conn.Open()
     End Sub
 
@@ -65,35 +65,35 @@ Public Class AccessDbHelper
         meDefault._addParam(strp)
         Return meDefault
     End Operator
+    ''' <summary>
+    ''' 添加参数，重载，参数类型
+    ''' </summary>
+    ''' <param name="p">直接数据类型</param>
+    ''' <remarks></remarks>
     Private Sub _addParam(ByVal p As QueryParameter)
         Me._sqlBuilder.Append("@" & _count.ToString)
-        Me.
+        Me._command.Parameters.AddWithValue("@" & _count.ToString, p.Value)
     End Sub
     Public Function ExcuteNonQuery() As Integer Implements IDbHelper.ExcuteNonQuery
-        Return ExcuteNonQuery(_SqlString)
+        Return ExcuteNonQuery(Me._command)
     End Function
 
-    Public Function ExcuteNonQuery(ByVal SqlString As String) As Integer Implements IDbHelper.ExcuteNonQuery
+    Public Function ExcuteNonQuery(ByVal sqlComm As System.Data.OleDb.OleDbCommand) As Integer Implements IDbHelper.ExcuteNonQuery
         CreateConn(_ConnString)
-        Using dbCom As New OleDb.OleDbCommand(SqlString)
-            dbCom.Connection = _Conn
-            Return dbCom.ExecuteNonQuery
+        Using sqlComm
+            Return sqlComm.ExecuteNonQuery
         End Using
     End Function
 
     Public Function ExecuteScalar(Of T)() As T Implements IDbHelper.ExecuteScalar
         Dim k As String = "34"
-
-        Return (ExecuteScalar(Of T)(_SqlString))
+        Return (ExecuteScalar(Of T)(Me._command))
     End Function
-    Public Function ExecuteScalar(Of T)(ByVal sqlString As String) As T Implements IDbHelper.ExecuteScalar
+    Public Function ExecuteScalar(Of T)(ByVal sqlComm As OleDb.OleDbCommand) As T Implements IDbHelper.ExecuteScalar
         CreateConn(_ConnString)
         Dim obj As Object
-        _SqlString = sqlString
-        Using dbCommand As New OleDb.OleDbCommand
-            dbCommand.Connection = _Conn
-            dbCommand.CommandText = _SqlString
-            obj = dbCommand.ExecuteScalar
+        Using sqlComm
+            obj = sqlComm.ExecuteScalar
             If ((obj Is Nothing) OrElse DBNull.Value.Equals(obj)) Then
                 Return CType(Nothing, T)
             End If
@@ -105,37 +105,31 @@ Public Class AccessDbHelper
     End Function
 
     Public Function FillDataSet() As System.Data.DataSet Implements IDbHelper.FillDataSet
-        Return FillDataSet(_SqlString)
+        Return FillDataSet(Me._command)
     End Function
 
     Public Function FillDataTable() As System.Data.DataTable Implements IDbHelper.FillDataTable
-        Return FillDataTable(_SqlString)
+        Return FillDataTable(Me._command)
     End Function
 
     Public Function From(ByVal sqlStr As String) As AccessDbHelper Implements IDbHelper.From
         Return New AccessDbHelper(sqlStr)
     End Function
 
-    Public Function FillDataTable(ByVal SqlString As String) As System.Data.DataTable Implements IDbHelper.FillDataTable
+    Public Function FillDataTable(ByVal sqlComm As OleDb.OleDbCommand) As System.Data.DataTable Implements IDbHelper.FillDataTable
         Dim _DataTable As New DataTable("_sunsoft")
-        _SqlString = SqlString
-        Using dbCommand As New OleDb.OleDbCommand
-            dbCommand.Connection = _Conn
-            dbCommand.CommandText = _SqlString
-            Using dbReader As OleDb.OleDbDataReader = dbCommand.ExecuteReader
+        Using sqlComm
+            Using dbReader As OleDb.OleDbDataReader = sqlComm.ExecuteReader
                 _DataTable.Load(dbReader)
             End Using
         End Using
         Return _DataTable
     End Function
 
-    Public Function FillDataSet(ByVal SqlString As String) As System.Data.DataSet Implements IDbHelper.FillDataSet
+    Public Function FillDataSet(ByVal sqlComm As OleDb.OleDbCommand) As System.Data.DataSet Implements IDbHelper.FillDataSet
         Dim _DataSet As New DataSet
-        _SqlString = SqlString
-        Using dbCommand As New OleDb.OleDbCommand
-            dbCommand.Connection = _Conn
-            dbCommand.CommandText = _SqlString
-            Dim s = New OleDbDataAdapter(dbCommand).Fill(_DataSet)
+        Using sqlComm
+            Dim s = New OleDbDataAdapter(sqlComm).Fill(_DataSet)
             Dim sCount As Integer
             For sCount = 0 To _DataSet.Tables.Count - 1
                 _DataSet.Tables.Item(sCount).TableName = ("_sunsoft" & sCount.ToString)
@@ -147,4 +141,5 @@ Public Class AccessDbHelper
     Private Sub Dispose()
         Me.Dispose()
     End Sub
+
 End Class
