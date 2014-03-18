@@ -74,6 +74,7 @@
     <Compile Include="AccessDbHelper.vb" />
     <Compile Include="DbExtention.vb" />
     <Compile Include="IDbHelper.vb" />
+    <Compile Include="ISqlDbHelper.vb" />
     <Compile Include="QueryParameter.vb" />
     <Compile Include="SqlDbHelper.vb" />
     <Compile Include="SRQuery.vb" />
