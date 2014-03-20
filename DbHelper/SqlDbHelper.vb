@@ -52,20 +52,25 @@ Public Class SqlDbHelper
     End Function
 
     Public Function ExcuteNonQuery(ByVal sqlComm As SqlClient.SqlCommand) As Integer Implements ISqlDbHelper.ExcuteNonQuery
+        _Conn.Open()
         Using sqlComm
             sqlComm.CommandText = _sqlBuilder.ToString
             Return sqlComm.ExecuteNonQuery
         End Using
+        _Conn.Close()
     End Function
 
     Public Function ExecuteScalar(Of T)() As T Implements ISqlDbHelper.ExecuteScalar
         Return ExecuteScalar(Of T)(Me._command)
     End Function
     Public Function ExecuteScalar(Of T)(ByVal sqlComm As SqlClient.SqlCommand) As T Implements ISqlDbHelper.ExecuteScalar
+        '更新：改为在执行中打开连接，执行后关闭
         Dim obj As Object
         Using sqlComm
+            _Conn.Open()
             sqlComm.CommandText = _sqlBuilder.ToString
             obj = sqlComm.ExecuteScalar
+            _Conn.Close()
             If ((obj Is Nothing) OrElse DBNull.Value.Equals(obj)) Then
                 Return CType(Nothing, T)
             End If
@@ -89,21 +94,27 @@ Public Class SqlDbHelper
     End Function
 
     Public Function FillDataTable(ByVal sqlComm As SqlClient.SqlCommand) As System.Data.DataTable Implements ISqlDbHelper.FillDataTable
+        '更新：改为在执行中打开连接，执行后关闭
         Dim _DataTable As New DataTable("_sunsoft")
         Using sqlComm
             sqlComm.CommandText = _sqlBuilder.ToString
+            _Conn.Open()
             Using dbReader As Data.SqlClient.SqlDataReader = sqlComm.ExecuteReader
                 _DataTable.Load(dbReader)
             End Using
+            _Conn.Close()
         End Using
         Return _DataTable
     End Function
 
     Public Function FillDataSet(ByVal sqlComm As SqlClient.SqlCommand) As System.Data.DataSet Implements ISqlDbHelper.FillDataSet
+        '更新：改为在执行中打开连接，执行后关闭
         Dim _DataSet As New DataSet
         Using sqlComm
             sqlComm.CommandText = _sqlBuilder.ToString
+            _Conn.Open()
             Dim s = New SqlDataAdapter(sqlComm).Fill(_DataSet)
+            _Conn.Close()
             Dim sCount As Integer
             For sCount = 0 To _DataSet.Tables.Count - 1
                 _DataSet.Tables.Item(sCount).TableName = ("_sunsoft" & sCount.ToString)
