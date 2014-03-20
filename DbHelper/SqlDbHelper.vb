@@ -30,6 +30,8 @@ Public Class SqlDbHelper
         Create(connString)
     End Sub
     Private Sub Create(ByVal connString As String)
+        '改动：2014年3月20日22:05:34:
+        '功能：将打开连接的功能关闭, 仅在执行的时候打开, 执行后关闭
         _ConnString = connString
         _command = New SqlClient.SqlCommand
         _Conn = New SqlClient.SqlConnection(_ConnString)
@@ -37,7 +39,6 @@ Public Class SqlDbHelper
 
         _ConnString = connString
         _Conn = New SqlConnection(_ConnString)
-        _Conn.Open()
         _command = New SqlCommand()
         _command.Connection = _Conn
 
