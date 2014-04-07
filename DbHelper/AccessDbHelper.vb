@@ -10,8 +10,14 @@ Public Class AccessDbHelper
     Private _SqlString As String = ""
     ' Private _rec As oledb.
     Private _count As Integer '计数参数的个数
-    Private _command As OleDbCommand
-    Private _sqlBuilder As StringBuilder
+    Private _command As OleDbCommand '命令对象
+    Private _sqlBuilder As StringBuilder 'sql字符串创建者
+    ''' <summary>
+    ''' 获取连接字符串
+    ''' </summary>
+    ''' <value></value>
+    ''' <returns></returns>
+    ''' <remarks></remarks>
     Public Property ConnectionString() As String
         Get
             Return _ConnString
@@ -21,6 +27,7 @@ Public Class AccessDbHelper
         End Set
     End Property
 
+    '2014年4月7日21:27:54 调整逻辑，采取执行时启动连接的做法
     Public Sub New()
         'ok at 2014年3月9日19:47:51
         '初始化变量：
@@ -29,23 +36,48 @@ Public Class AccessDbHelper
         '读取连接字符串
         Dim connString As String = System.Configuration.ConfigurationManager.AppSettings.Get("ConnectionString")
         _ConnString = connString
-        '连接到数据库，创建连接
-        CreateConn(_ConnString)
     End Sub
+
     Public Sub New(ByVal connString As String)
-        'ok at 2014年3月9日19:34:24
+        'ok at 2014年4月7日21:30:16
+        '修改代码，修正逻辑
+        _ConnString = connString
         _sqlBuilder = New StringBuilder("")
         _command = New OleDbCommand
-        CreateConn(connString)
     End Sub
+
+    ''' <summary>
+    ''' 直接从文件建立连接【自动生成连接字符串】
+    ''' </summary>
+    ''' <param name="FileName"></param>
+    ''' <remarks></remarks>
+    Public Sub FromFile(ByVal FileName As String)
+        '2014年4月7日21:33:23 修正逻辑，之前忘记将取得的路径付给内部变量
+        _sqlBuilder = New StringBuilder("")
+        _command = New OleDbCommand
+        _ConnString = ConnStrFromFile(FileName)
+    End Sub
+
+    ''' <summary>
+    ''' 根据文件路径生成连接字符串
+    ''' </summary>
+    ''' <param name="FileName">文件路径</param>
+    ''' <returns>数据库连接字符串</returns>
+    ''' <remarks></remarks>
+    Private Function ConnStrFromFile(ByVal FileName As String) As String
+        Dim connStr As String = String.Format("PROVIDER=Microsoft.ACE.OLEDB.12.0;Data Source={0};", FileName)
+        Return connStr
+    End Function
+
     Public Shared Function Create() As AccessDbHelper
-        'ok at
+        '2014年4月7日21:34:18 这个函数直接返回一个这个对象
         Return New AccessDbHelper
     End Function
 
     Public Sub CreateConn(ByVal connString As String)
         'ok at 2014年3月9日19:32:27
         '修改：2014年3月16日19:37:17
+        '注释：这个函数在启动SQL执行前调用，不可任意调用
         _Conn = New OleDb.OleDbConnection(connString)
         _command.Connection = _Conn
         _Conn.Open()
@@ -57,14 +89,17 @@ Public Class AccessDbHelper
         Return meDefault
     End Operator
 
-    Private Sub _addSqlText(ByVal paramStr As String)
-        _sqlBuilder.Append(paramStr)
-    End Sub
     Public Shared Operator +(ByVal meDefault As AccessDbHelper, ByVal strp As QueryParameter) As AccessDbHelper
         'meDefault._sqlBuilder.Append("@" & _count.ToString)
         meDefault._addParam(strp)
         Return meDefault
     End Operator
+
+    Private Sub _addSqlText(ByVal paramStr As String)
+        _sqlBuilder.Append(paramStr)
+        _command.CommandText = _sqlBuilder.ToString
+    End Sub
+
     ''' <summary>
     ''' 添加参数，重载，参数类型
     ''' </summary>
@@ -74,9 +109,6 @@ Public Class AccessDbHelper
         Me._sqlBuilder.Append("@p" & _count.ToString)
         Me._command.Parameters.AddWithValue("@p" & _count.ToString, p.Value)
     End Sub
-    Public Function ExcuteNonQuery() As Integer Implements IDbHelper.ExcuteNonQuery
-        Return ExcuteNonQuery(Me._command)
-    End Function
 
     Public Function ExcuteNonQuery(ByVal sqlComm As System.Data.OleDb.OleDbCommand) As Integer Implements IDbHelper.ExcuteNonQuery
         CreateConn(_ConnString)
@@ -84,11 +116,10 @@ Public Class AccessDbHelper
             Return sqlComm.ExecuteNonQuery
         End Using
     End Function
-
-    Public Function ExecuteScalar(Of T)() As T Implements IDbHelper.ExecuteScalar
-        Dim k As String = "34"
-        Return (ExecuteScalar(Of T)(Me._command))
+    Public Function ExcuteNonQuery() As Integer Implements IDbHelper.ExcuteNonQuery
+        Return ExcuteNonQuery(Me._command)
     End Function
+
     Public Function ExecuteScalar(Of T)(ByVal sqlComm As OleDb.OleDbCommand) As T Implements IDbHelper.ExecuteScalar
         CreateConn(_ConnString)
         Dim obj As Object
@@ -103,20 +134,22 @@ Public Class AccessDbHelper
         End Using
         Return DirectCast(Convert.ChangeType(obj, GetType(T)), T)
     End Function
-
-    Public Function FillDataSet() As System.Data.DataSet Implements IDbHelper.FillDataSet
-        Return FillDataSet(Me._command)
+    Public Function ExecuteScalar(Of T)() As T Implements IDbHelper.ExecuteScalar
+        Return (ExecuteScalar(Of T)(Me._command))
     End Function
 
-    Public Function FillDataTable() As System.Data.DataTable Implements IDbHelper.FillDataTable
-        Return FillDataTable(Me._command)
-    End Function
-
-    Public Function From(ByVal sqlStr As String) As AccessDbHelper Implements IDbHelper.From
-        Return New AccessDbHelper(sqlStr)
+    ''' <summary>
+    ''' 从连接字符串创建AccessDbHelper对象
+    ''' </summary>
+    ''' <param name="ConnectionString">连接字符串</param>
+    ''' <returns></returns>
+    ''' <remarks></remarks>
+    Public Function From(ByVal ConnectionString As String) As AccessDbHelper Implements IDbHelper.From
+        Return New AccessDbHelper(ConnectionString)
     End Function
 
     Public Function FillDataTable(ByVal sqlComm As OleDb.OleDbCommand) As System.Data.DataTable Implements IDbHelper.FillDataTable
+        CreateConn(_ConnString)
         Dim _DataTable As New DataTable("_sunsoft")
         Using sqlComm
             Using dbReader As OleDb.OleDbDataReader = sqlComm.ExecuteReader
@@ -125,8 +158,12 @@ Public Class AccessDbHelper
         End Using
         Return _DataTable
     End Function
+    Public Function FillDataTable() As System.Data.DataTable Implements IDbHelper.FillDataTable
+        Return FillDataTable(Me._command)
+    End Function
 
     Public Function FillDataSet(ByVal sqlComm As OleDb.OleDbCommand) As System.Data.DataSet Implements IDbHelper.FillDataSet
+        CreateConn(_ConnString)
         Dim _DataSet As New DataSet
         Using sqlComm
             Dim s = New OleDbDataAdapter(sqlComm).Fill(_DataSet)
@@ -136,6 +173,9 @@ Public Class AccessDbHelper
             Next sCount
             Return _DataSet
         End Using
+    End Function
+    Public Function FillDataSet() As System.Data.DataSet Implements IDbHelper.FillDataSet
+        Return FillDataSet(Me._command)
     End Function
     '内部函数……………………
     Private Sub Dispose()
