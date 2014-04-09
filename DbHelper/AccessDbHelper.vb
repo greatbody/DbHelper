@@ -112,9 +112,9 @@ Public Class AccessDbHelper
 
     Public Function ExcuteNonQuery(ByVal sqlComm As System.Data.OleDb.OleDbCommand) As Integer Implements IDbHelper.ExcuteNonQuery
         CreateConn(_ConnString)
-        Using sqlComm
-            Return sqlComm.ExecuteNonQuery
-        End Using
+
+        Return sqlComm.ExecuteNonQuery
+
     End Function
     Public Function ExcuteNonQuery() As Integer Implements IDbHelper.ExcuteNonQuery
         Return ExcuteNonQuery(Me._command)
@@ -123,7 +123,6 @@ Public Class AccessDbHelper
     Public Function ExecuteScalar(Of T)(ByVal sqlComm As OleDb.OleDbCommand) As T Implements IDbHelper.ExecuteScalar
         CreateConn(_ConnString)
         Dim obj As Object
-        Using sqlComm
             obj = sqlComm.ExecuteScalar
             If ((obj Is Nothing) OrElse DBNull.Value.Equals(obj)) Then
                 Return CType(Nothing, T)
@@ -131,7 +130,6 @@ Public Class AccessDbHelper
             If (obj.GetType Is GetType(T)) Then
                 Return DirectCast(obj, T)
             End If
-        End Using
         Return DirectCast(Convert.ChangeType(obj, GetType(T)), T)
     End Function
     Public Function ExecuteScalar(Of T)() As T Implements IDbHelper.ExecuteScalar
@@ -151,11 +149,11 @@ Public Class AccessDbHelper
     Public Function FillDataTable(ByVal sqlComm As OleDb.OleDbCommand) As System.Data.DataTable Implements IDbHelper.FillDataTable
         CreateConn(_ConnString)
         Dim _DataTable As New DataTable("_sunsoft")
-        Using sqlComm
-            Using dbReader As OleDb.OleDbDataReader = sqlComm.ExecuteReader
-                _DataTable.Load(dbReader)
-            End Using
+
+        Using dbReader As OleDb.OleDbDataReader = sqlComm.ExecuteReader
+            _DataTable.Load(dbReader)
         End Using
+
         Return _DataTable
     End Function
     Public Function FillDataTable() As System.Data.DataTable Implements IDbHelper.FillDataTable
@@ -165,14 +163,12 @@ Public Class AccessDbHelper
     Public Function FillDataSet(ByVal sqlComm As OleDb.OleDbCommand) As System.Data.DataSet Implements IDbHelper.FillDataSet
         CreateConn(_ConnString)
         Dim _DataSet As New DataSet
-        Using sqlComm
             Dim s = New OleDbDataAdapter(sqlComm).Fill(_DataSet)
             Dim sCount As Integer
             For sCount = 0 To _DataSet.Tables.Count - 1
                 _DataSet.Tables.Item(sCount).TableName = ("_sunsoft" & sCount.ToString)
             Next sCount
             Return _DataSet
-        End Using
     End Function
     Public Function FillDataSet() As System.Data.DataSet Implements IDbHelper.FillDataSet
         Return FillDataSet(Me._command)
