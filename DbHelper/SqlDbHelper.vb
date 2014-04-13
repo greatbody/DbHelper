@@ -20,25 +20,35 @@ Public Class SqlDbHelper
     End Property
 
     Public Sub New()
-        Dim connString As String = System.Configuration.ConfigurationManager.AppSettings.Get("ConnectionString")
+        LikeNew
+    End Sub
+    Public Sub New(ByVal connString As String)
+        _ConnString = connString
+        LikeNew()
+    End Sub
+    ''' <summary>
+    ''' 一个替代Sub New的过程，Sub New的几个重载函数都调用这个过程
+    ''' </summary>
+    ''' <remarks>created by 孙瑞</remarks>
+    Private Sub LikeNew()
+        Dim connString As String = _ConnString
         If connString = Nothing Or connString = "" Or String.IsNullOrEmpty(connString) Then
-            Throw New Exception("请配置初始化的连接字符串，否则请提供连接字符串")
+            connString = System.Configuration.ConfigurationManager.AppSettings.Get("ConnectionString")
+            If connString = Nothing Or connString = "" Or String.IsNullOrEmpty(connString) Then
+                Throw New Exception("请配置初始化的连接字符串，否则请提供连接字符串")
+            End If
         End If
         Create(connString)
     End Sub
-    Public Sub New(ByVal connString As String)
-        Create(connString)
-    End Sub
+
     Private Sub Create(ByVal connString As String)
         '改动：2014年3月20日22:05:34:
         '功能：将打开连接的功能关闭, 仅在执行的时候打开, 执行后关闭
         _ConnString = connString
-        _command = New SqlClient.SqlCommand
-        _Conn = New SqlClient.SqlConnection(_ConnString)
+        _command = New SqlCommand
+        _Conn = New SqlConnection(_ConnString)
         _sqlBuilder = New StringBuilder("")
 
-        _ConnString = connString
-        _Conn = New SqlConnection(_ConnString)
         _command = New SqlCommand()
         _command.Connection = _Conn
 
