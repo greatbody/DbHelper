@@ -4,7 +4,7 @@ Imports System.Text
 Public Class SqlDbHelper
     Implements ISqlDbHelper
 
-    Private _Conn As New SqlClient.SqlConnection
+    Private _Conn As SqlClient.SqlConnection
     Private _ConnString As String = ""
     Private _SqlString As String = ""
     Private _command As SqlClient.SqlCommand
@@ -20,39 +20,39 @@ Public Class SqlDbHelper
     End Property
 
     Public Sub New()
-        LikeNew
+        '构造函数仅仅负责初始化连接字符串、命令文本对象、连接对象
+        _command = New SqlCommand
+        _sqlBuilder = New StringBuilder("")
+        Dim tmpConnString As String = System.Configuration.ConfigurationManager.AppSettings.Get("ConnectionString")
+        If tmpConnString = Nothing Or tmpConnString = "" Or String.IsNullOrEmpty(tmpConnString) Then
+            _ConnString = ""
+        Else
+            _ConnString = tmpConnString
+        End If
     End Sub
     Public Sub New(ByVal connString As String)
         _ConnString = connString
-        LikeNew()
-    End Sub
-    ''' <summary>
-    ''' 一个替代Sub New的过程，Sub New的几个重载函数都调用这个过程
-    ''' </summary>
-    ''' <remarks>created by 孙瑞</remarks>
-    Private Sub LikeNew()
-        Dim connString As String = _ConnString
-        If connString = Nothing Or connString = "" Or String.IsNullOrEmpty(connString) Then
-            connString = System.Configuration.ConfigurationManager.AppSettings.Get("ConnectionString")
-            If connString = Nothing Or connString = "" Or String.IsNullOrEmpty(connString) Then
-                Throw New Exception("请配置初始化的连接字符串，否则请提供连接字符串")
-            End If
-        End If
-        Create(connString)
+        _command = New SqlCommand
+        _sqlBuilder = New StringBuilder("")
     End Sub
 
-    Private Sub Create(ByVal connString As String)
+    Private Sub CreateConn(ByVal connString As String)
         '改动：2014年3月20日22:05:34:
         '功能：将打开连接的功能关闭, 仅在执行的时候打开, 执行后关闭
+        If connString = Nothing Or connString = "" Or String.IsNullOrEmpty(connString) Then
+            Throw New Exception("请配置初始化的连接字符串，否则请提供连接字符串")
+        End If
         _ConnString = connString
-        _command = New SqlCommand
+
         _Conn = New SqlConnection(_ConnString)
-        _sqlBuilder = New StringBuilder("")
-
-        _command = New SqlCommand()
         _command.Connection = _Conn
-
+        _Conn.Open()
     End Sub
+
+    Public Function Create(ByVal connString As String)
+        '返回一个对象自身
+        Return New SqlDbHelper(connString)
+    End Function
     Public Function Create() As SqlDbHelper
         Return New SqlDbHelper()
     End Function
@@ -62,11 +62,9 @@ Public Class SqlDbHelper
     End Function
 
     Public Function ExcuteNonQuery(ByVal sqlComm As SqlClient.SqlCommand) As Integer Implements ISqlDbHelper.ExcuteNonQuery
-        _Conn.Open()
-        Using sqlComm
-            sqlComm.CommandText = _sqlBuilder.ToString
-            Return sqlComm.ExecuteNonQuery
-        End Using
+        CreateConn(_ConnString)
+        sqlComm.CommandText = _sqlBuilder.ToString
+        Return sqlComm.ExecuteNonQuery
         _Conn.Close()
     End Function
 
@@ -76,19 +74,17 @@ Public Class SqlDbHelper
     Public Function ExecuteScalar(Of T)(ByVal sqlComm As SqlClient.SqlCommand) As T Implements ISqlDbHelper.ExecuteScalar
         '更新：改为在执行中打开连接，执行后关闭
         Dim obj As Object
-        Using sqlComm
-            _Conn.Open()
-            sqlComm.CommandText = _sqlBuilder.ToString
-            obj = sqlComm.ExecuteScalar
-            _Conn.Close()
-            If ((obj Is Nothing) OrElse DBNull.Value.Equals(obj)) Then
-                Return CType(Nothing, T)
-            End If
-            If (obj.GetType Is GetType(T)) Then
-                Return DirectCast(obj, T)
-            End If
-            Return DirectCast(Convert.ChangeType(obj, GetType(T)), T)
-        End Using
+        CreateConn(_ConnString)
+        sqlComm.CommandText = _sqlBuilder.ToString
+        obj = sqlComm.ExecuteScalar
+        _Conn.Close()
+        If ((obj Is Nothing) OrElse DBNull.Value.Equals(obj)) Then
+            Return CType(Nothing, T)
+        End If
+        If (obj.GetType Is GetType(T)) Then
+            Return DirectCast(obj, T)
+        End If
+        Return DirectCast(Convert.ChangeType(obj, GetType(T)), T)
     End Function
 
     Public Function FillDataSet() As System.Data.DataSet Implements ISqlDbHelper.FillDataSet
@@ -106,31 +102,29 @@ Public Class SqlDbHelper
     Public Function FillDataTable(ByVal sqlComm As SqlClient.SqlCommand) As System.Data.DataTable Implements ISqlDbHelper.FillDataTable
         '更新：改为在执行中打开连接，执行后关闭
         Dim _DataTable As New DataTable("_sunsoft")
-        Using sqlComm
-            sqlComm.CommandText = _sqlBuilder.ToString
-            _Conn.Open()
-            Using dbReader As Data.SqlClient.SqlDataReader = sqlComm.ExecuteReader
-                _DataTable.Load(dbReader)
-            End Using
-            _Conn.Close()
+
+        sqlComm.CommandText = _sqlBuilder.ToString
+        CreateConn(_ConnString)
+        Using dbReader As Data.SqlClient.SqlDataReader = sqlComm.ExecuteReader
+            _DataTable.Load(dbReader)
         End Using
+        _Conn.Close()
+
         Return _DataTable
     End Function
 
     Public Function FillDataSet(ByVal sqlComm As SqlClient.SqlCommand) As System.Data.DataSet Implements ISqlDbHelper.FillDataSet
         '更新：改为在执行中打开连接，执行后关闭
         Dim _DataSet As New DataSet
-        Using sqlComm
-            sqlComm.CommandText = _sqlBuilder.ToString
-            _Conn.Open()
-            Dim s = New SqlDataAdapter(sqlComm).Fill(_DataSet)
-            _Conn.Close()
-            Dim sCount As Integer
-            For sCount = 0 To _DataSet.Tables.Count - 1
-                _DataSet.Tables.Item(sCount).TableName = ("_sunsoft" & sCount.ToString)
-            Next sCount
-            Return _DataSet
-        End Using
+        sqlComm.CommandText = _sqlBuilder.ToString
+        CreateConn(_ConnString)
+        Dim s = New SqlDataAdapter(sqlComm).Fill(_DataSet)
+        _Conn.Close()
+        Dim sCount As Integer
+        For sCount = 0 To _DataSet.Tables.Count - 1
+            _DataSet.Tables.Item(sCount).TableName = ("_sunsoft" & sCount.ToString)
+        Next sCount
+        Return _DataSet
     End Function
 
 
