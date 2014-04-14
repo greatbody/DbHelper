@@ -50,7 +50,7 @@ Public Class AccessDbHelper
         Dim connString As String = _ConnString
         If connString = "" Or String.IsNullOrEmpty(connString) Or connString = Nothing Then
             connString = System.Configuration.ConfigurationManager.AppSettings.Get("ConnectionString")
-            Throw New Exception("未设置连接字符串或连接字符串为空！")
+            'Throw New Exception("未设置连接字符串或连接字符串为空！")
         End If
         _ConnString = connString
     End Sub
@@ -86,7 +86,11 @@ Public Class AccessDbHelper
     Public Sub CreateConn(ByVal connString As String)
         'ok at 2014年3月9日19:32:27
         '修改：2014年3月16日19:37:17
-        '注释：这个函数在启动SQL执行前调用，不可任意调用
+        '注释：这个函数在启动SQL执行前调用，不可任意调用；这里，将连接字符串非空校验放在了连接函数这里
+        '传入的参数就是_ConnString
+        If connString = "" Or String.IsNullOrEmpty(connString) Or connString = Nothing Then
+            Throw New Exception("未设置连接字符串或连接字符串为空！")
+        End If
         _Conn = New OleDb.OleDbConnection(connString)
         _command.Connection = _Conn
         _Conn.Open()
