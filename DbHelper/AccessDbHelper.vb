@@ -29,21 +29,30 @@ Public Class AccessDbHelper
 
     '2014年4月7日21:27:54 调整逻辑，采取执行时启动连接的做法
     Public Sub New()
-        'ok at 2014年3月9日19:47:51
-        '初始化变量：
-        _sqlBuilder = New StringBuilder("")
-        _command = New OleDbCommand
-        '读取连接字符串
-        Dim connString As String = System.Configuration.ConfigurationManager.AppSettings.Get("ConnectionString")
-        _ConnString = connString
+        'ok at 2014年4月13日21:48:09
+        LikeNew()
     End Sub
 
     Public Sub New(ByVal connString As String)
         'ok at 2014年4月7日21:30:16
         '修改代码，修正逻辑
         _ConnString = connString
+        LikeNew()
+    End Sub
+
+    Private Sub LikeNew()
+        'ok at 2014年4月14日15:56:15
+        '修改：增加这个函数，支持传入的连接字符串为空的情况
+        '初始化变量：
         _sqlBuilder = New StringBuilder("")
         _command = New OleDbCommand
+        '读取连接字符串
+        Dim connString As String = _ConnString
+        If connString = "" Or String.IsNullOrEmpty(connString) Or connString = Nothing Then
+            connString = System.Configuration.ConfigurationManager.AppSettings.Get("ConnectionString")
+            Throw New Exception("未设置连接字符串或连接字符串为空！")
+        End If
+        _ConnString = connString
     End Sub
 
     ''' <summary>
