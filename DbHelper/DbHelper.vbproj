@@ -69,7 +69,6 @@
     <Import Include="System.Diagnostics" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ConnManager.vb" />
     <Compile Include="DbConnFactory.vb" />
     <Compile Include="AccessDbHelper.vb" />
     <Compile Include="DbExtention.vb" />
@@ -77,7 +76,6 @@
     <Compile Include="ISqlDbHelper.vb" />
     <Compile Include="QueryParameter.vb" />
     <Compile Include="SqlDbHelper.vb" />
-    <Compile Include="SRQuery.vb" />
     <Compile Include="My Project\AssemblyInfo.vb" />
     <Compile Include="My Project\Application.Designer.vb">
       <AutoGen>True</AutoGen>
