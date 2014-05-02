@@ -26,6 +26,10 @@ Public Class AccessDbHelper
         End Set
     End Property
 
+    Public Sub SetUnsafeConnString(ByVal ConnString As String)
+        UniConnString = ConnString
+    End Sub
+
     '2014年4月7日21:27:54 调整逻辑，采取执行时启动连接的做法
     Public Sub New()
         'ok at 2014年4月13日21:48:09

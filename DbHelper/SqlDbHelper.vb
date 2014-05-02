@@ -18,7 +18,9 @@ Public Class SqlDbHelper
             _ConnString = value
         End Set
     End Property
-
+    Public Sub SetUnsafeConnString(ByVal ConnString As String)
+        UniConnString = ConnString
+    End Sub
     Public Sub New()
         '构造函数仅仅负责初始化连接字符串、命令文本对象、连接对象
         _command = New SqlCommand
