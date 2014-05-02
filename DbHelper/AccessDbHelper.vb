@@ -4,11 +4,10 @@ Imports System.Text
 Imports SunSoft.DAL.StringUtility
 Public Class AccessDbHelper
     Implements IDbHelper
-
+    Private Shared UniConnString As String = ""
     Private _Conn As OleDb.OleDbConnection
     Private _ConnString As String = ""
     Private _SqlString As String = ""
-    ' Private _rec As oledb.
     Private _count As Integer '计数参数的个数
     Private _command As OleDbCommand '命令对象
     Private _sqlBuilder As StringBuilder 'sql字符串创建者
@@ -47,7 +46,12 @@ Public Class AccessDbHelper
         _sqlBuilder = New StringBuilder("")
         _command = New OleDbCommand
         '读取连接字符串
-        Dim connString As String = _ConnString
+        Dim connString As String = ""
+        If String.IsNullOrEmpty(UniConnString) = True Then
+            connString = _ConnString
+        Else
+            connString = UniConnString
+        End If
         If connString = "" Or String.IsNullOrEmpty(connString) Or connString = Nothing Then
             connString = System.Configuration.ConfigurationManager.AppSettings.Get("ConnectionString")
             'Throw New Exception("未设置连接字符串或连接字符串为空！")

@@ -3,7 +3,7 @@ Imports System.Text
 
 Public Class SqlDbHelper
     Implements ISqlDbHelper
-
+    Private Shared UniConnString As String
     Private _Conn As SqlClient.SqlConnection
     Private _ConnString As String = ""
     Private _SqlString As String = ""
@@ -23,11 +23,16 @@ Public Class SqlDbHelper
         '构造函数仅仅负责初始化连接字符串、命令文本对象、连接对象
         _command = New SqlCommand
         _sqlBuilder = New StringBuilder("")
-        Dim tmpConnString As String = System.Configuration.ConfigurationManager.AppSettings.Get("ConnectionString")
-        If tmpConnString = Nothing Or tmpConnString = "" Or String.IsNullOrEmpty(tmpConnString) Then
-            _ConnString = ""
+        If String.IsNullOrEmpty(UniConnString) = True Then
+            Dim tmpConnString As String = System.Configuration.ConfigurationManager.AppSettings.Get("ConnectionString")
+            If String.IsNullOrEmpty(tmpConnString) = True Then
+                _ConnString = ""
+            Else
+                _ConnString = tmpConnString
+            End If
         Else
-            _ConnString = tmpConnString
+            '静态连接字符串存在内容
+            _ConnString = UniConnString
         End If
     End Sub
     Public Sub New(ByVal connString As String)
@@ -39,7 +44,7 @@ Public Class SqlDbHelper
     Private Sub CreateConn(ByVal connString As String)
         '改动：2014年3月20日22:05:34:
         '功能：将打开连接的功能关闭, 仅在执行的时候打开, 执行后关闭
-        If connString = Nothing Or connString = "" Or String.IsNullOrEmpty(connString) Then
+        If String.IsNullOrEmpty(connString) = True Then
             Throw New Exception("请配置初始化的连接字符串，否则请提供连接字符串")
         End If
         _ConnString = connString
