@@ -18,7 +18,7 @@ Public Class SqlDbHelper
             _ConnString = value
         End Set
     End Property
-    Public Sub SetUnsafeConnString(ByVal ConnString As String)
+    Public Shared Sub SetUnsafeConnString(ByVal ConnString As String)
         UniConnString = ConnString
     End Sub
     Public Sub New()
@@ -60,7 +60,7 @@ Public Class SqlDbHelper
         '返回一个对象自身
         Return New SqlDbHelper(connString)
     End Function
-    Public Function Create() As SqlDbHelper
+    Public Shared Function Create() As SqlDbHelper
         Return New SqlDbHelper()
     End Function
 
