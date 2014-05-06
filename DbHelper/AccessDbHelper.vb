@@ -129,6 +129,7 @@ Public Class AccessDbHelper
     Private Sub _addParam(ByVal p As QueryParameter)
         Me._sqlBuilder.Append("@p" & _count.ToString)
         Me._command.Parameters.AddWithValue("@p" & _count.ToString, p.Value)
+        _count += 1
     End Sub
 
     Public Function ExcuteNonQuery(ByVal sqlComm As System.Data.OleDb.OleDbCommand) As Integer Implements IDbHelper.ExcuteNonQuery
